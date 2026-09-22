@@ -4,6 +4,7 @@ import { DatabaseModule } from './database/database.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PlacesModule } from './places/places.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { PlacesModule } from './places/places.module';
     }),
     DatabaseModule,
     PlacesModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
