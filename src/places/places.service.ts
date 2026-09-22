@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { DatabaseService } from '../database/database.service';
 import { CreatePlaceDto } from './dto/create-place.dto';
@@ -71,10 +71,18 @@ export class PlacesService {
   async remove(id: string): Promise<void> {
     const data = await this.db.read();
     const places = data.places as Place[];
+    const reviews = data.reviews as any[];
     const index = places.findIndex((p) => p.id === id);
 
     if (index === -1) {
       throw new NotFoundException(`L'endroit avec l'ID "${id}" n'existe pas.`);
+    }
+
+    const hasReviews = reviews.some((r) => r.placeId === id);
+    if (hasReviews) {
+      throw new ConflictException(
+        `L'endroit avec l'ID "${id}" possède des appréciations et ne peut pas être supprimé.`,
+      );
     }
 
     places.splice(index, 1);
