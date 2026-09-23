@@ -12,13 +12,13 @@ import { PlaceCategory } from '../enums/place-category.enum';
 import { PlaceStatus } from '../enums/place-status.enum';
 
 export class CreatePlaceDto {
-  @ApiProperty({ example: 'Bibliothèque principale', maxLength: 100 })
+  @ApiProperty({ example: 'Bibliotheque', maxLength: 100 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   name!: string;
 
-  @ApiProperty({ example: 'Espace calme avec prises.', maxLength: 500 })
+  @ApiProperty({ example: 'Espace calme pour etudier.', maxLength: 500 })
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
@@ -34,7 +34,7 @@ export class CreatePlaceDto {
   address!: string;
 
   @ApiPropertyOptional({
-    example: ['WIFI', 'POWER_OUTLETS'],
+    example: ['WIFI', 'FOOD'],
     type: [String],
   })
   @IsOptional()
