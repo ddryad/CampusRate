@@ -1,99 +1,282 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# CampusRate
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API REST permettant à la communauté étudiante de consulter des endroits du campus et de publier des appréciations accompagnées d'une note.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+> Projet réalisé dans le cadre du cours 420-514 — Collecte et interprétation des données (TP1).
 
-## Description
+## Fonctionnalités
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- gestion des endroits évalués (créer, lister, consulter, modifier, supprimer);
+- gestion des appréciations liées à un endroit (créer, lister, consulter, modifier, supprimer);
+- calcul automatique de la note moyenne et du nombre d'appréciations d'un endroit;
+- filtrage par catégorie et pagination sur la liste des endroits;
+- validation stricte des données reçues (rejet des propriétés inconnues);
+- persistance des données dans un fichier JSON local, conservée après un redémarrage;
+- gestion uniforme des erreurs au format Problem Details (`application/problem+json`);
+- documentation Swagger/OpenAPI générée automatiquement.
 
-## Project setup
+## Technologies
 
-```bash
-$ npm install
-```
+- Node.js;
+- TypeScript;
+- NestJS;
+- class-validator / class-transformer;
+- Swagger (OpenAPI);
+- Jest.
 
-## Compile and run the project
+## Prérequis
+
+- une version de Node.js compatible avec le fichier `package.json`;
+- npm;
+- Git.
+
+## Installation
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+git clone <URL_DU_DEPOT>
+cd campus-rate
+npm install
 ```
 
-## Run tests
+## Configuration
+
+L'application attend les variables d'environnement suivantes :
+
+| Variable | Obligatoire | Description | Exemple local |
+|---|---|---|---|
+| `PORT` | Oui | Port d'écoute du serveur HTTP | `3000` |
+| `DATA_FILE_PATH` | Oui | Chemin du fichier JSON utilisé pour la persistance | `./data/db.json` |
+
+L'application refuse de démarrer si une de ces variables est absente.
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp .env.example .env
 ```
 
-## Deployment
+Le fichier `.env` ne doit jamais être ajouté au dépôt.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## Exécution
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Développement
 
 ```bash
-$ npm install -g mau
-$ mau deploy
+npm run start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### Production
 
-## Resources
+```bash
+npm run build
+npm run start:prod
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+Avec `PORT=3000`, l'API est accessible à l'adresse suivante :
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```text
+http://localhost:3000/api/v1
+```
 
-## Support
+La documentation Swagger est accessible à :
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```text
+http://localhost:3000/docs
+```
 
-## Stay in touch
+La spécification OpenAPI brute (JSON) est accessible à :
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```text
+http://localhost:3000/docs/openapi.json
+```
 
-## License
+## Structure du projet
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```text
+src/
+├── main.ts
+├── app.module.ts
+├── configure-app.ts
+├── configure-swagger.ts
+├── common/
+│   ├── dto/
+│   │   └── problem-details.dto.ts
+│   └── filters/
+│       └── http-exception.filter.ts
+├── database/
+│   └── database.service.ts
+├── health/
+│   ├── health.controller.ts
+│   └── health.module.ts
+├── places/
+│   ├── places.module.ts
+│   ├── places.controller.ts
+│   ├── places.service.ts
+│   ├── entities/
+│   │   └── place.entity.ts
+│   ├── enums/
+│   │   ├── place-category.enum.ts
+│   │   └── place-status.enum.ts
+│   └── dto/
+│       ├── create-place.dto.ts
+│       ├── update-place.dto.ts
+│       └── place-query.dto.ts
+└── reviews/
+    ├── reviews.module.ts
+    ├── reviews.controller.ts
+    ├── reviews.service.ts
+    ├── entities/
+    │   └── review.entity.ts
+    └── dto/
+        ├── create-review.dto.ts
+        └── update-review.dto.ts
+```
+
+Organisation par fonctionnalité : chaque module regroupe son contrôleur, son service et ses DTO. Le dossier `common` contient ce qui est partagé par toute l'API (format d'erreur). Le dossier `database` isole l'accès au fichier JSON, séparé de la logique métier des services.
+
+## API
+
+Toutes les routes sont exposées sous le préfixe `/api/v1`.
+
+### Endroits (`places`)
+
+| Méthode | Route | Succès | Description |
+|---|---|---:|---|
+| `POST` | `/api/v1/places` | `201` | Crée un endroit |
+| `GET` | `/api/v1/places` | `200` | Liste les endroits (filtre + pagination) |
+| `GET` | `/api/v1/places/:id` | `200` | Consulte un endroit |
+| `PATCH` | `/api/v1/places/:id` | `200` | Modifie un endroit |
+| `DELETE` | `/api/v1/places/:id` | `204` | Supprime un endroit (refusé si des appréciations existent) |
+
+### Appréciations (`reviews`)
+
+| Méthode | Route | Succès | Description |
+|---|---|---:|---|
+| `POST` | `/api/v1/places/:placeId/reviews` | `201` | Publie une appréciation pour un endroit |
+| `GET` | `/api/v1/places/:placeId/reviews` | `200` | Liste les appréciations d'un endroit |
+| `GET` | `/api/v1/reviews/:id` | `200` | Consulte une appréciation |
+| `PATCH` | `/api/v1/reviews/:id` | `200` | Modifie une appréciation |
+| `DELETE` | `/api/v1/reviews/:id` | `204` | Supprime une appréciation |
+
+### Exemples
+
+Créer un endroit :
+
+```bash
+curl -i -X POST http://localhost:3000/api/v1/places \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Bibliothèque principale","description":"Espace calme avec prises.","category":"LIBRARY","address":"Pavillon A, local A-210"}'
+```
+
+Publier une appréciation pour cet endroit :
+
+```bash
+curl -i -X POST http://localhost:3000/api/v1/places/plc_xxx/reviews \
+  -H "Content-Type: application/json" \
+  -d '{"authorName":"Samira","rating":4,"comment":"Calme et Wi-Fi stable."}'
+```
+
+Lister les endroits d'une catégorie, page 1, 10 résultats :
+
+```bash
+curl -i "http://localhost:3000/api/v1/places?category=LIBRARY&page=1&limit=10"
+```
+
+Réponse :
+
+```json
+{
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "totalItems": 0,
+    "totalPages": 0
+  }
+}
+```
+
+Exemple d'erreur (endroit inexistant) :
+
+```json
+{
+  "type": "about:blank",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "L'endroit avec l'ID \"plc_inexistant\" n'existe pas.",
+  "instance": "/api/v1/places/plc_inexistant"
+}
+```
+
+L'identifiant est généré par le serveur et ne doit jamais être fourni par le client. Toute propriété non reconnue envoyée dans le corps d'une requête est refusée (`400`).
+
+## Persistance des données
+
+Les données sont conservées dans un fichier JSON local (chemin défini par `DATA_FILE_PATH`), contenant deux collections : `places` et `reviews`. Le fichier est créé automatiquement au premier démarrage s'il n'existe pas. Un fichier corrompu (JSON invalide) produit une erreur contrôlée plutôt qu'un plantage.
+
+L'accès au fichier est isolé dans un service dédié (`DatabaseService`), séparé de la logique métier des services `PlacesService` et `ReviewsService`, qui ne connaissent que des tableaux d'objets.
+
+## Règles métier
+
+- une appréciation doit toujours référer à un endroit existant;
+- `id`, les dates et les valeurs calculées (`averageRating`, `reviewCount`) ne peuvent pas être fournis par le client;
+- un endroit sans appréciation affiche `averageRating: null` et `reviewCount: 0`;
+- la création, la modification ou la suppression d'une appréciation recalcule automatiquement les statistiques de l'endroit associé;
+- un endroit possédant au moins une appréciation ne peut pas être supprimé (`409 Conflict`).
+
+## Choix de conception
+
+| Décision | Choix retenu | Justification |
+|---|---|---|
+| Nom des ressources | `places`, `reviews` | Noms anglais, pluriels, sans verbe d'action, conformes aux conventions REST |
+| Versionnement | Dans l'URI (`/api/v1/...`) | Simple à mettre en place et visible directement dans la route |
+| Imbrication | Mixte : création et liste imbriquées sous `/places/:placeId/reviews`, opérations unitaires plates sous `/reviews/:id` | Une appréciation n'a de sens qu'associée à un endroit lors de sa création, mais elle a ensuite son propre cycle de vie (consultation, modification, suppression) |
+| Suppression d'un endroit avec appréciations | `409 Conflict` | La requête est valide et la ressource existe, mais l'opération entre en conflit avec l'état actuel du système |
+| Erreurs | Format Problem Details, type `application/problem+json` | Format uniforme sur toute l'API, exigé pour toutes les erreurs |
+| Persistance | Fichier JSON unique, accès isolé dans un service dédié | Simplicité demandée par le mandat, séparation claire entre logique métier et accès aux données |
+
+## Limites connues
+
+- la persistance par fichier JSON n'est pas adaptée à des accès concurrents importants;
+- aucune authentification ni autorisation n'est mise en place à ce stade;
+- la suppression d'un endroit avec appréciations est bloquée plutôt que gérée par une suppression en cascade.
+
+## Développement et Git
+
+Le développement a suivi une issue parente par grande fonctionnalité, avec une branche `feature/*` associée à chacune :
+
+- `feature/places-resource` — ressource `places`;
+- `feature/reviews-resource` — ressource `reviews` et règles métier associées;
+- `feature/swagger` — validation globale, gestion des erreurs, pagination, documentation.
+
+Chaque branche a fait l'objet d'une pull request avant d'être fusionnée dans `main`.
+
+## Vérification manuelle
+
+Une collection Postman (ou un document équivalent) couvrant les scénarios principaux (création, consultation, modification, suppression, note invalide, ressource inexistante, conflit de suppression, filtre, pagination, persistance après redémarrage) est disponible dans [`docs/postman`](docs/postman).
+
+## Scripts disponibles
+
+| Commande | Description |
+|---|---|
+| `npm run start` | Démarre l'application |
+| `npm run start:dev` | Démarre l'application en mode surveillance |
+| `npm run build` | Compile l'application |
+| `npm run lint` | Analyse et corrige le code selon les règles configurées |
+| `npm run test` | Exécute les tests unitaires |
+
+## Qualité du code
+
+Avant de soumettre une pull request :
+
+```bash
+npm run build
+npm run lint
+npm run test
+```
+
+## Utilisation de l'IA
+
+L'utilisation de l'intelligence artificielle dans la réalisation de ce travail est déclarée selon IAGraphie (voir le document fourni avec la remise).
+
+## Licence
+
+Projet réalisé dans un cadre scolaire (420-514, Automne 2026).
