@@ -5,6 +5,7 @@ import { CreatePlaceDto } from './dto/create-place.dto';
 import { UpdatePlaceDto } from './dto/update-place.dto';
 import { Place } from './entities/place.entity';
 import { PlaceStatus } from './enums/place-status.enum';
+import { PlaceQueryDto } from './dto/place-query.dto';
 
 @Injectable()
 export class PlacesService {
@@ -35,9 +36,26 @@ export class PlacesService {
     return newPlace;
   }
 
-  async findAll(): Promise<Place[]> {
+  async findAll(query: PlaceQueryDto) {
     const data = await this.db.read();
-    return data.places as Place[];
+    const places = data.places as Place[];
+
+    const filtered = query.category
+      ? places.filter((p) => p.category === query.category)
+      : places;
+
+    const start = (query.page - 1) * query.limit;
+    const paginated = filtered.slice(start, start + query.limit);
+
+    return {
+      data: paginated,
+      pagination: {
+        page: query.page,
+        limit: query.limit,
+        totalItems: filtered.length,
+        totalPages: Math.ceil(filtered.length / query.limit) || 0,
+      },
+    };
   }
 
   async findOne(id: string): Promise<Place> {
