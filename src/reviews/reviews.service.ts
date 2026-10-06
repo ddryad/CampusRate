@@ -17,7 +17,9 @@ export class ReviewsService {
 
     const place = places.find((p) => p.id === placeId);
     if (!place) {
-      throw new NotFoundException(`L'endroit avec l'ID "${placeId}" n'existe pas.`);
+      throw new NotFoundException(
+        `L'endroit avec l'ID "${placeId}" n'existe pas.`,
+      );
     }
 
     const now = new Date().toISOString();
@@ -45,7 +47,9 @@ export class ReviewsService {
 
     const place = places.find((p) => p.id === placeId);
     if (!place) {
-      throw new NotFoundException(`L'endroit avec l'ID "${placeId}" n'existe pas.`);
+      throw new NotFoundException(
+        `L'endroit avec l'ID "${placeId}" n'existe pas.`,
+      );
     }
 
     return reviews.filter((r) => r.placeId === placeId);
@@ -57,7 +61,9 @@ export class ReviewsService {
     const review = reviews.find((r) => r.id === id);
 
     if (!review) {
-      throw new NotFoundException(`L'appréciation avec l'ID "${id}" n'existe pas.`);
+      throw new NotFoundException(
+        `L'appréciation avec l'ID "${id}" n'existe pas.`,
+      );
     }
 
     return review;
@@ -69,7 +75,9 @@ export class ReviewsService {
     const review = reviews.find((r) => r.id === id);
 
     if (!review) {
-      throw new NotFoundException(`L'appréciation avec l'ID "${id}" n'existe pas.`);
+      throw new NotFoundException(
+        `L'appréciation avec l'ID "${id}" n'existe pas.`,
+      );
     }
 
     Object.assign(review, dto);
@@ -87,7 +95,9 @@ export class ReviewsService {
     const index = reviews.findIndex((r) => r.id === id);
 
     if (index === -1) {
-      throw new NotFoundException(`L'appréciation avec l'ID "${id}" n'existe pas.`);
+      throw new NotFoundException(
+        `L'appréciation avec l'ID "${id}" n'existe pas.`,
+      );
     }
 
     const placeId = reviews[index].placeId;

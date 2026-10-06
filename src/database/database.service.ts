@@ -43,7 +43,11 @@ export class DatabaseService {
 
   async write(data: DbShape): Promise<void> {
     await promises.mkdir(dirname(this.filePath), { recursive: true });
-    await promises.writeFile(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
+    await promises.writeFile(
+      this.filePath,
+      JSON.stringify(data, null, 2),
+      'utf-8',
+    );
   }
 
   private async initializeFile(): Promise<void> {

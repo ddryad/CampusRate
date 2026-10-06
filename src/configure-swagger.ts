@@ -5,7 +5,7 @@ export function configureSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('CampusRate API')
     .setDescription(
-      "API REST permettant à la communauté étudiante de consulter des endroits du campus et de publier des appréciations.",
+      'API REST permettant à la communauté étudiante de consulter des endroits du campus et de publier des appréciations.',
     )
     .setVersion('1.0.0')
     .addTag('Places', 'Gestion des endroits évalués')
