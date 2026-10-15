@@ -1,0 +1,62 @@
+@base = http://localhost:3000/api/v1
+
+### 1. Création valide
+POST {{base}}/places
+Content-Type: application/json
+
+{"name":"Bibliothèque principale","description":"Espace calme avec prises.","category":"LIBRARY","address":"Pavillon A, local A-210"}
+
+### 2. Consultation (remplacer :id par l'id retourné)
+GET {{base}}/places/:id
+
+### 3. Persistance : redémarrer l'API puis refaire la requête 2 ou la liste
+GET {{base}}/places
+
+### 4. Propriété obligatoire absente -> 400
+POST {{base}}/places
+Content-Type: application/json
+
+{"name":"Sans adresse","description":"x","category":"LIBRARY"}
+
+### 5. Valeur invalide (catégorie) -> 400
+POST {{base}}/places
+Content-Type: application/json
+
+{"name":"Test","description":"x","category":"INVALID","address":"A"}
+
+### 6. Propriété inconnue -> 400
+POST {{base}}/places
+Content-Type: application/json
+
+{"name":"Test","description":"x","category":"LIBRARY","address":"A","foo":"bar"}
+
+### 7. Modification valide -> 200
+PATCH {{base}}/places/:id
+Content-Type: application/json
+
+{"description":"Nouvelle description"}
+
+### 8. Champ contrôlé par le serveur -> 400
+PATCH {{base}}/places/:id
+Content-Type: application/json
+
+{"averageRating":5,"reviewCount":99,"id":"abc"}
+
+### 9. Doublon de nom -> 409 (rejouer la requête 1)
+### 10. Id mal formé -> 400
+GET {{base}}/places/abc
+
+### 11. Publier une appréciation
+POST {{base}}/places/:id/reviews
+Content-Type: application/json
+
+{"authorName":"Samira","rating":4,"comment":"Calme et Wi-Fi stable."}
+
+### 12. Supprimer un endroit avec appréciations -> 409
+DELETE {{base}}/places/:id
+
+### 13. Mauvais Content-Type -> 415
+POST {{base}}/places
+Content-Type: text/plain
+
+hello

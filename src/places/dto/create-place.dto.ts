@@ -28,9 +28,10 @@ export class CreatePlaceDto {
   @IsEnum(PlaceCategory)
   category!: PlaceCategory;
 
-  @ApiProperty({ example: 'Pavillon A, local A-210' })
+  @ApiProperty({ example: 'Pavillon A, local A-210', maxLength: 200 })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(200)
   address!: string;
 
   @ApiPropertyOptional({
@@ -41,6 +42,7 @@ export class CreatePlaceDto {
   @IsArray()
   @ArrayUnique()
   @IsString({ each: true })
+  @MaxLength(50, { each: true })
   services?: string[];
 
   @ApiPropertyOptional({ enum: PlaceStatus, example: PlaceStatus.ACTIVE })

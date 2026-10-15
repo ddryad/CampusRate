@@ -2,7 +2,7 @@
 
 API REST permettant à la communauté étudiante de consulter des endroits du campus et de publier des appréciations accompagnées d'une note.
 
-> Projet réalisé dans le cadre du cours 420-514 — Collecte et interprétation des données (TP1).
+> Projet réalisé dans le cadre du cours 420-514 — Collecte et interprétation des données (TP1 et TP2).
 
 ## Fonctionnalités
 
@@ -11,7 +11,8 @@ API REST permettant à la communauté étudiante de consulter des endroits du ca
 - calcul automatique de la note moyenne et du nombre d'appréciations d'un endroit;
 - filtrage par catégorie et pagination sur la liste des endroits;
 - validation stricte des données reçues (rejet des propriétés inconnues);
-- persistance des données dans un fichier JSON local, conservée après un redémarrage;
+- persistance des données dans MongoDB (Mongoose), conservée après un redémarrage;
+- sécurité HTTP de base : CORS explicite et en-têtes Helmet;
 - gestion uniforme des erreurs au format Problem Details (`application/problem+json`);
 - documentation Swagger/OpenAPI générée automatiquement.
 
@@ -22,13 +23,16 @@ API REST permettant à la communauté étudiante de consulter des endroits du ca
 - NestJS;
 - class-validator / class-transformer;
 - Swagger (OpenAPI);
+- MongoDB / Mongoose;
+- Helmet, @nestjs/throttler;
 - Jest.
 
 ## Prérequis
 
 - une version de Node.js compatible avec le fichier `package.json`;
 - npm;
-- Git.
+- Git;
+- MongoDB (local ou Atlas).
 
 ## Installation
 
@@ -44,14 +48,17 @@ L'application attend les variables d'environnement suivantes :
 
 | Variable | Obligatoire | Description | Exemple local |
 |---|---|---|---|
-| `PORT` | Oui | Port d'écoute du serveur HTTP | `3000` |
-| `DATA_FILE_PATH` | Oui | Chemin du fichier JSON utilisé pour la persistance | `./data/db.json` |
+| `PORT` | Non (3000) | Port d'écoute du serveur HTTP | `3000` |
+| `MONGO_URI` | Oui | URI de connexion MongoDB | `mongodb://localhost:27017/campusrate-dev` |
+| `CORS_ORIGINS` | Non | Origines autorisées par CORS, séparées par des virgules | `http://localhost:3000` |
 
-L'application refuse de démarrer si une de ces variables est absente.
+L'application refuse de démarrer si `MONGO_URI` est absente (validation Joi).
 
 ```bash
 cp .env.example .env
 ```
+
+Pour une base locale : démarrer `mongod` (ou utiliser une base MongoDB Atlas) puis mettre l'URI dans `.env`. Les collections `places` et `reviews` sont créées automatiquement.
 
 Le fichier `.env` ne doit jamais être ajouté au dépôt.
 
@@ -99,10 +106,14 @@ src/
 ├── common/
 │   ├── dto/
 │   │   └── problem-details.dto.ts
+│   ├── database/ (mongo-errors, to-public-json)
+│   ├── guards/ (json-content-type.guard)
+│   ├── middleware/ (request-logger)
+│   ├── pipes/ (parse-object-id.pipe)
 │   └── filters/
 │       └── http-exception.filter.ts
-├── database/
-│   └── database.service.ts
+├── config/
+│   └── database.config.ts
 ├── health/
 │   ├── health.controller.ts
 │   └── health.module.ts
@@ -110,8 +121,9 @@ src/
 │   ├── places.module.ts
 │   ├── places.controller.ts
 │   ├── places.service.ts
-│   ├── entities/
-│   │   └── place.entity.ts
+│   ├── places.repository.ts
+│   ├── schemas/
+│   │   └── place.schema.ts
 │   ├── enums/
 │   │   ├── place-category.enum.ts
 │   │   └── place-status.enum.ts
@@ -123,14 +135,15 @@ src/
     ├── reviews.module.ts
     ├── reviews.controller.ts
     ├── reviews.service.ts
-    ├── entities/
-    │   └── review.entity.ts
+    ├── reviews.repository.ts
+    ├── schemas/
+    │   └── review.schema.ts
     └── dto/
         ├── create-review.dto.ts
         └── update-review.dto.ts
 ```
 
-Organisation par fonctionnalité : chaque module regroupe son contrôleur, son service et ses DTO. Le dossier `common` contient ce qui est partagé par toute l'API (format d'erreur). Le dossier `database` isole l'accès au fichier JSON, séparé de la logique métier des services.
+Organisation par fonctionnalité : chaque module regroupe son contrôleur, son service et ses DTO. Le dossier `common` contient ce qui est partagé par toute l'API (format d'erreur). Les repositories (`*.repository.ts`) isolent les requêtes Mongoose de la logique métier des services.
 
 ## API
 
@@ -210,9 +223,17 @@ L'identifiant est généré par le serveur et ne doit jamais être fourni par le
 
 ## Persistance des données
 
-Les données sont conservées dans un fichier JSON local (chemin défini par `DATA_FILE_PATH`), contenant deux collections : `places` et `reviews`. Le fichier est créé automatiquement au premier démarrage s'il n'existe pas. Un fichier corrompu (JSON invalide) produit une erreur contrôlée plutôt qu'un plantage.
+Les données sont conservées dans MongoDB via Mongoose, dans deux collections : `places` et `reviews`. Une appréciation référence son endroit par `placeId` (**référence plutôt qu'imbrication** : une appréciation a son propre cycle de vie, peut devenir nombreuse et est consultée/modifiée indépendamment).
 
-L'accès au fichier est isolé dans un service dédié (`DatabaseService`), séparé de la logique métier des services `PlacesService` et `ReviewsService`, qui ne connaissent que des tableaux d'objets.
+Index :
+
+- `places.name` unique (insensible à la casse) : empêche les doublons, même en cas de requêtes simultanées → `409 Conflict`;
+- `places.category` : filtre par catégorie;
+- `reviews.placeId` : retrouver les appréciations d'un endroit.
+
+Les statistiques d'un endroit (`averageRating`, `reviewCount`) sont recalculées avec une **agrégation MongoDB** (`$group` / `$avg`) à chaque changement d'appréciation.
+
+Le contrat public est conservé : `id` (chaîne) remplace `_id`, `__v` est masqué. Seul changement : l'identifiant est maintenant un ObjectId MongoDB (ex. `665f1c2e8b3a4d0012a4b5c6`) au lieu de `plc_<uuid>`; un identifiant mal formé produit `400`.
 
 ## Règles métier
 
@@ -231,13 +252,46 @@ L'accès au fichier est isolé dans un service dédié (`DatabaseService`), sép
 | Imbrication | Mixte : création et liste imbriquées sous `/places/:placeId/reviews`, opérations unitaires plates sous `/reviews/:id` | Une appréciation n'a de sens qu'associée à un endroit lors de sa création, mais elle a ensuite son propre cycle de vie (consultation, modification, suppression) |
 | Suppression d'un endroit avec appréciations | `409 Conflict` | La requête est valide et la ressource existe, mais l'opération entre en conflit avec l'état actuel du système |
 | Erreurs | Format Problem Details, type `application/problem+json` | Format uniforme sur toute l'API, exigé pour toutes les erreurs |
-| Persistance | Fichier JSON unique, accès isolé dans un service dédié | Simplicité demandée par le mandat, séparation claire entre logique métier et accès aux données |
+| Persistance | MongoDB + Mongoose, accès isolé dans des repositories | Données persistantes, index uniques, séparation contrôleur / service / accès aux données |
+
+## Validation et sécurité
+
+Principales validations :
+
+- `ValidationPipe` global (`whitelist` + `forbidNonWhitelisted`) : toute propriété inconnue est refusée (`400`);
+- `id`, `createdAt`, `updatedAt`, `averageRating`, `reviewCount` sont contrôlés par le serveur et refusés s'ils sont envoyés;
+- `name` ≤ 100, `description` ≤ 500, `address` ≤ 200, `category`/`status` validés par enum;
+- `rating` entier entre 1 et 5, `comment` entre 5 et 500 caractères, `authorName` ≤ 80;
+- les identifiants de route sont validés (ObjectId), `page`/`limit` bornés (`limit` ≤ 50);
+- le client n'envoie jamais d'objet directement à MongoDB : le service construit les filtres et les modifications champ par champ.
+
+**CORS** : seules les origines de `CORS_ORIGINS` sont autorisées, avec les méthodes `GET`, `POST`, `PATCH`, `DELETE`. CORS limite ce que les *navigateurs* peuvent lire; ce n'est pas une authentification (curl ou Postman l'ignorent).
+
+**Helmet** : ajoute des en-têtes HTTP de sécurité (ex. `X-Content-Type-Options`, `Content-Security-Policy`, `Strict-Transport-Security`) qui réduisent certains risques côté navigateur.
+
+## Fonctionnalités optionnelles implantées
+
+| Code | Option | Détail |
+|---|---|---|
+| M1 | Index + doublon | Index unique sur `places.name`, `409` en cas de doublon |
+| M2 | Agrégation | Moyenne et nombre d'appréciations via `$group` |
+| M3 | Référence vs imbrication | Justifié dans « Persistance des données » |
+| H1 | Rate limiting | 100 requêtes/minute/IP (`429`) |
+| H2 | Taille du corps | 10 kb max, `413` |
+| H3 | Content-Type | `application/json` requis pour POST/PATCH, sinon `415` |
+| H4 | CORS par environnement | Origines définies par `CORS_ORIGINS` |
+| H5 | Méthodes HTTP | CORS limité à GET, POST, PATCH, DELETE |
+| P2 | Champs modifiables | Liste explicite des champs modifiables dans les services |
+| L1 | Journal INFO | method, path, statusCode, durée (aucun corps ni en-tête) |
+| L2 | Journal ERROR | Erreurs 5xx journalisées avec la stack côté serveur seulement |
 
 ## Limites connues
 
-- la persistance par fichier JSON n'est pas adaptée à des accès concurrents importants;
-- aucune authentification ni autorisation n'est mise en place à ce stade;
-- la suppression d'un endroit avec appréciations est bloquée plutôt que gérée par une suppression en cascade.
+- aucune authentification ni autorisation n'est mise en place;
+- la suppression d'un endroit avec appréciations est bloquée plutôt que gérée par une suppression en cascade;
+- le recalcul des statistiques n'est pas transactionnel (deux écritures successives);
+- le HTTPS n'est pas configuré (à gérer par un proxy en production);
+- les erreurs `429` de rate limiting suivent le format Problem Details, mais le journal INFO n'inclut pas de `requestId`.
 
 ## Développement et Git
 
@@ -251,7 +305,7 @@ Chaque branche a fait l'objet d'une pull request avant d'être fusionnée dans `
 
 ## Vérification manuelle
 
-Une collection Postman (ou un document équivalent) couvrant les scénarios principaux (création, consultation, modification, suppression, note invalide, ressource inexistante, conflit de suppression, filtre, pagination, persistance après redémarrage) est disponible dans [`docs/postman`](docs/postman).
+Une collection Postman (ou un document équivalent) couvrant les scénarios principaux (création, consultation, modification, suppression, note invalide, ressource inexistante, conflit de suppression, filtre, pagination, persistance après redémarrage) est disponible.
 
 ## Scripts disponibles
 
