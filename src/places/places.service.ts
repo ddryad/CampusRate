@@ -1,113 +1,109 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
-  ConflictException,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { DatabaseService } from '../database/database.service';
+import { FilterQuery } from 'mongoose';
 import { CreatePlaceDto } from './dto/create-place.dto';
-import { UpdatePlaceDto } from './dto/update-place.dto';
-import { Place } from './entities/place.entity';
-import { PlaceStatus } from './enums/place-status.enum';
 import { PlaceQueryDto } from './dto/place-query.dto';
+import { UpdatePlaceDto } from './dto/update-place.dto';
+import { PlacesRepository } from './places.repository';
+import { Place } from './schemas/place.schema';
+
+const UPDATABLE_FIELDS = [
+  'name',
+  'description',
+  'category',
+  'address',
+  'services',
+  'status',
+] as const;
 
 @Injectable()
 export class PlacesService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(private readonly placesRepository: PlacesRepository) {}
 
-  async create(dto: CreatePlaceDto): Promise<Place> {
-    const data = await this.db.read();
-    const places = data.places as Place[];
-
-    const now = new Date().toISOString();
-    const newPlace: Place = {
-      id: `plc_${randomUUID()}`,
+  create(dto: CreatePlaceDto): Promise<Place> {
+    return this.placesRepository.create({
       name: dto.name,
       description: dto.description,
       category: dto.category,
       address: dto.address,
-      services: dto.services ?? [],
-      status: dto.status ?? PlaceStatus.ACTIVE,
-      averageRating: null,
-      reviewCount: 0,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    places.push(newPlace);
-    await this.db.write(data);
-
-    return newPlace;
+      services: dto.services,
+      status: dto.status,
+    });
   }
 
   async findAll(query: PlaceQueryDto) {
-    const data = await this.db.read();
-    const places = data.places as Place[];
+    const filter: FilterQuery<Place> = {};
+    if (query.category) {
+      filter.category = query.category;
+    }
 
-    const filtered = query.category
-      ? places.filter((p) => p.category === query.category)
-      : places;
-
-    const start = (query.page - 1) * query.limit;
-    const paginated = filtered.slice(start, start + query.limit);
+    const [data, totalItems] = await Promise.all([
+      this.placesRepository.findAll(
+        filter,
+        (query.page - 1) * query.limit,
+        query.limit,
+      ),
+      this.placesRepository.count(filter),
+    ]);
 
     return {
-      data: paginated,
+      data,
       pagination: {
         page: query.page,
         limit: query.limit,
-        totalItems: filtered.length,
-        totalPages: Math.ceil(filtered.length / query.limit) || 0,
+        totalItems,
+        totalPages: Math.ceil(totalItems / query.limit) || 0,
       },
     };
   }
 
   async findOne(id: string): Promise<Place> {
-    const data = await this.db.read();
-    const places = data.places as Place[];
-    const place = places.find((p) => p.id === id);
-
+    const place = await this.placesRepository.findById(id);
     if (!place) {
       throw new NotFoundException(`L'endroit avec l'ID "${id}" n'existe pas.`);
     }
-
     return place;
   }
 
   async update(id: string, dto: UpdatePlaceDto): Promise<Place> {
-    const data = await this.db.read();
-    const places = data.places as Place[];
-    const place = places.find((p) => p.id === id);
+    const changes: Partial<Place> = {};
+    for (const field of UPDATABLE_FIELDS) {
+      if (dto[field] !== undefined) {
+        (changes as Record<string, unknown>)[field] = dto[field];
+      }
+    }
 
+    const place = await this.placesRepository.update(id, changes);
     if (!place) {
       throw new NotFoundException(`L'endroit avec l'ID "${id}" n'existe pas.`);
     }
-
-    Object.assign(place, dto);
-    place.updatedAt = new Date().toISOString();
-
-    await this.db.write(data);
     return place;
   }
 
   async remove(id: string): Promise<void> {
-    const data = await this.db.read();
-    const places = data.places as Place[];
-    const reviews = data.reviews as any[];
-    const index = places.findIndex((p) => p.id === id);
+    await this.findOne(id);
 
-    if (index === -1) {
-      throw new NotFoundException(`L'endroit avec l'ID "${id}" n'existe pas.`);
-    }
-
-    const hasReviews = reviews.some((r) => r.placeId === id);
-    if (hasReviews) {
+    if (await this.placesRepository.hasReviews(id)) {
       throw new ConflictException(
         `L'endroit avec l'ID "${id}" possède des appréciations et ne peut pas être supprimé.`,
       );
     }
 
-    places.splice(index, 1);
-    await this.db.write(data);
+    await this.placesRepository.remove(id);
+  }
+
+  async updateStats(
+    placeId: string,
+    averageRating: number | null,
+    reviewCount: number,
+  ): Promise<void> {
+    await this.placesRepository.updateStats(
+      placeId,
+      averageRating,
+      reviewCount,
+    );
   }
 }
